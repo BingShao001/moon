@@ -1,0 +1,2 @@
+failfast=moon.cluster.ha.FailfastHaStrategy
+failover=moon.cluster.ha.FailoverHaStrategy

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:moon="http://code.mindflow.com/schema/moon"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://code.mindflow.com/schema/moon http://code.mindflow.com/schema/moon/moon.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <context:annotation-config/>
+    <context:component-scan base-package="moon.demo.client"/>
+
+    <context:property-placeholder location="classpath:config.properties" />
+
+    <moon:application name="${application.name}" />
+
+    <moon:protocol name="moon" port="${protocol.port}" />
+
+    <moon:registry protocol="zookeeper" address="${registry.address}" connect-timeout="5000" />
+
+    <!--refer services -->
+    <moon:reference id="demoService" interface="moon.demo.service.DemoService" group="group1" />
+    <moon:reference id="userService" interface="moon.demo.service.UserService" />
+    <moon:reference id="fooService" interface="moon.demo.service.FooService"/>
+
+</beans>
