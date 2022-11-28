@@ -27,11 +27,22 @@ import java.util.List;
 public class DefaultConfigHandler implements ConfigHandler {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
+    /**
+     * 构建默认路由信息，封装reference《——》service通讯对象
+     * @param interfaceClass
+     * @param refUrl reference的信息(ip端口、依赖接口、版本、group，序列化方式，角色，超时时间等)
+     * @param registryUrls 注册中心信息
+     * @param <T>
+     * @return
+     */
     @Override
     public <T> Cluster<T> buildCluster(Class<T> interfaceClass, URL refUrl, List<URL> registryUrls) {
         DefaultCluster<T> cluster = new DefaultCluster(interfaceClass, refUrl, registryUrls);
+        //负载均衡算法，没配置默认随机
         String loadBalanceName = refUrl.getParameter(URLParam.loadBalance.getName(), URLParam.loadBalance.getValue());
+        //快速失败策略
         String haStrategyName = refUrl.getParameter(URLParam.haStrategy.getName(), URLParam.haStrategy.getValue());
+        //spi获取
         LoadBalance<T> loadBalance = ExtensionLoader.getExtensionLoader(LoadBalance.class).getExtension(loadBalanceName);
         HaStrategy<T> ha = ExtensionLoader.getExtensionLoader(HaStrategy.class).getExtension(haStrategyName);
         cluster.setLoadBalance(loadBalance);
@@ -50,10 +61,10 @@ public class DefaultConfigHandler implements ConfigHandler {
 
     /**
      * 组织xml节点数据
-     * @param interfaceClass
-     * @param ref
-     * @param serviceUrl
-     * @param registryUrls
+     * @param interfaceClass 声明的接口service类
+     * @param ref 引用实现bean
+     * @param serviceUrl serviceUrl的信息(ip端口、依赖接口、版本、group，序列化方式，角色，超时时间等)
+     * @param registryUrls 注册中心信息
      * @param <T>
      * @return
      */
@@ -61,12 +72,12 @@ public class DefaultConfigHandler implements ConfigHandler {
     public <T> Exporter<T> export(Class<T> interfaceClass, T ref, URL serviceUrl, List<URL> registryUrls) {
         //<moon:protocol name="moon"
         String protocolName = serviceUrl.getParameter(URLParam.protocol.getName(), URLParam.protocol.getValue());
+        //创建provider
         Provider<T> provider = new DefaultProvider<T>(ref, serviceUrl, interfaceClass);
         //DefaultRpcProtocol
         Protocol protocol = new ProtocolFilterWrapper(ExtensionLoader.getExtensionLoader(Protocol.class).getExtension(protocolName));
         // 通过protocol暴露服务
         Exporter<T> exporter = protocol.export(provider, serviceUrl);
-
         // register service
         register(registryUrls, serviceUrl);
 

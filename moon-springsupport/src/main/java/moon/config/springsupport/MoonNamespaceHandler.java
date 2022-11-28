@@ -14,6 +14,9 @@ import java.util.Set;
  * @author Ricky Fung
  */
 public class MoonNamespaceHandler extends NamespaceHandlerSupport {
+    /**
+     * 解析xml配置时用来记录和区分配置了多少项，如配置了多少个service
+     */
     public final static Set<String> protocolDefineNames = new ConcurrentHashSet<String>();
     public final static Set<String> registryDefineNames = new ConcurrentHashSet<String>();
     public final static Set<String> serviceConfigDefineNames = new ConcurrentHashSet<String>();

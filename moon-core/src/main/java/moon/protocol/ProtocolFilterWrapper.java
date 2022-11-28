@@ -23,6 +23,7 @@ public class ProtocolFilterWrapper implements Protocol {
         if (protocol == null) {
             throw new RpcFrameworkException("Protocol is null when construct "+this.getClass().getName());
         }
+        //DefaultRpcProtocol
         this.protocol = protocol;
     }
 

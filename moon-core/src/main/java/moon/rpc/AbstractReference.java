@@ -43,13 +43,14 @@ public abstract class AbstractReference<T> implements Reference<T> {
         if (!isAvailable()) {
             throw new RpcFrameworkException(this.getClass().getName() + " call Error: node is not available, url=" + url.getUri());
         }
-
+        //统计reference调用次数
         incrActiveCount(request);
         Response response = null;
         try {
             response = doCall(request);
             return response;
         } finally {
+            //调用完成，调用次数减一
             decrActiveCount(request, response);
         }
 

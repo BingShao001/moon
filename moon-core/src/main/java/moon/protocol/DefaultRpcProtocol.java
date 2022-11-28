@@ -93,10 +93,13 @@ public class DefaultRpcProtocol extends AbstractProtocol {
             MessageRouter router = initRequestRouter(url);
 
             NettyServer server;
+            //锁住读写之间的并发资源
             synchronized (ipPort2Server) {
                 server = ipPort2Server.get(ipPort);
                 if (server == null) {
+                    //创建netty通讯连接
                     server = new NettyServerImpl(url, router);
+                    //<ip:port《——》nettyServer>
                     ipPort2Server.put(ipPort, server);
                 }
             }

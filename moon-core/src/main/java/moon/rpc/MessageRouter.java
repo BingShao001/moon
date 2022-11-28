@@ -30,7 +30,7 @@ public class MessageRouter implements MessageHandler {
     public Response handle(Request request) {
         //serviceKey: group/interface/version
         String serviceKey = FrameworkUtils.getServiceKey(request);
-
+        //通过之前注册过的map记录，拿到对应请求的provider对象，以空间换时间
         Provider<?> provider = providers.get(serviceKey);
 
         if (provider == null) {

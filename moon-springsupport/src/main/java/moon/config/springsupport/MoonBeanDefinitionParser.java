@@ -38,7 +38,7 @@ public class MoonBeanDefinitionParser implements BeanDefinitionParser {
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings( {"rawtypes", "unchecked"})
     private static BeanDefinition parse(Element element, ParserContext parserContext, Class<?> beanClass, boolean required)
             throws ClassNotFoundException {
         RootBeanDefinition bd = new RootBeanDefinition();
@@ -66,10 +66,12 @@ public class MoonBeanDefinitionParser implements BeanDefinitionParser {
             }
             id = generatedBeanName;
             int counter = 2;
+            //去重
             while (parserContext.getRegistry().containsBeanDefinition(id)) {
                 id = generatedBeanName + (counter++);
             }
         }
+        //如果累加后的beanId，在ParserContext中还有重复异常拦截
         if (id != null && id.length() > 0) {
             if (parserContext.getRegistry().containsBeanDefinition(id)) {
                 throw new IllegalStateException("Duplicate spring bean id " + id);
@@ -79,8 +81,11 @@ public class MoonBeanDefinitionParser implements BeanDefinitionParser {
         bd.getPropertyValues().addPropertyValue("id", id);
         /**注册类型到bean池里，并设置bean id end**/
 
-        //解析属性
+        //按类型，解析属性
         if (ApplicationConfig.class.equals(beanClass)) {
+            /**
+             * <moon:application name="${application.name}" />
+             */
             MoonNamespaceHandler.applicationConfigDefineNames.add(id);
             //将element节点对应的类的属性进行赋值
             parseCommonProperty("name", null, element, bd, parserContext);
@@ -91,6 +96,9 @@ public class MoonBeanDefinitionParser implements BeanDefinitionParser {
             parseCommonProperty("default", "isDefault", element, bd, parserContext);
 
         } else if (ProtocolConfig.class.equals(beanClass)) {
+            /**
+             * <moon:protocol name="moon" port="${protocol.port}" />
+             */
             MoonNamespaceHandler.protocolDefineNames.add(id);
 
             parseCommonProperty("name", null, element, bd, parserContext);
@@ -108,6 +116,9 @@ public class MoonBeanDefinitionParser implements BeanDefinitionParser {
             parseCommonProperty("heartbeat", null, element, bd, parserContext);
             parseCommonProperty("default", "isDefault", element, bd, parserContext);
         } else if (RegistryConfig.class.equals(beanClass)) {
+            /**
+             * <moon:registry id="zookeeper" protocol="zookeeper" address="${registry.address}" connect-timeout="5000" />
+             */
             MoonNamespaceHandler.registryDefineNames.add(id);
 
             parseCommonProperty("protocol", null, element, bd, parserContext);
@@ -118,10 +129,16 @@ public class MoonBeanDefinitionParser implements BeanDefinitionParser {
             parseCommonProperty("password", null, element, bd, parserContext);
             parseCommonProperty("default", "isDefault", element, bd, parserContext);
         } else if (ReferenceConfigBean.class.equals(beanClass)) {
+            /**
+             * <moon:reference id="demoService"  interface="moon.demo.service.DemoService"  group="group1" registry="zookeeper" />
+             */
             MoonNamespaceHandler.referenceConfigDefineNames.add(id);
 
             parseCommonProperty("interface", "interfaceName", element, bd, parserContext);
-
+            /**
+             * 注册中心的配置列表，解析
+             * registry
+             */
             String registry = element.getAttribute("registry");
             if (StringUtils.isNotBlank(registry)) {
                 parseMultiRef("registries", registry, bd, parserContext);
@@ -135,6 +152,9 @@ public class MoonBeanDefinitionParser implements BeanDefinitionParser {
             parseCommonProperty("check", null, element, bd, parserContext);
 
         } else if (ServiceConfigBean.class.equals(beanClass)) {
+            /**
+             * <moon:service interface="moon.demo.service.DemoService" ref="demoService" protocol="moon" group="group1" version="1.0.0"/>
+             */
             MoonNamespaceHandler.serviceConfigDefineNames.add(id);
 
             parseCommonProperty("interface", "interfaceName", element, bd, parserContext);
@@ -162,6 +182,7 @@ public class MoonBeanDefinitionParser implements BeanDefinitionParser {
 
     /**
      * 将element节点对应的类的属性进行赋值
+     *
      * @param name
      * @param alias
      * @param element
@@ -173,13 +194,14 @@ public class MoonBeanDefinitionParser implements BeanDefinitionParser {
 
         String value = element.getAttribute(name);
         if (StringUtils.isNotBlank(value)) {
-            String property = alias!=null ? alias:name;
+            String property = alias != null ? alias : name;
             bd.getPropertyValues().addPropertyValue(property, value);
         }
     }
 
     /**
      * 单个依赖，single拦截验证
+     *
      * @param property
      * @param element
      * @param bd
@@ -203,13 +225,16 @@ public class MoonBeanDefinitionParser implements BeanDefinitionParser {
 
     /**
      * 批量依赖属性
+     *
      * @param property
      * @param value
      * @param bd
      * @param parserContext
      */
-    private static void parseMultiRef(String property, String value, BeanDefinition bd,
-                                      ParserContext parserContext) {
+    private static void parseMultiRef(String property, String value, BeanDefinition bd, ParserContext parserContext) {
+        /**
+         * <moon:reference id="demoService"  interface="moon.demo.service.DemoService"  group="group1" registry="zookeeper" />
+         */
         String[] values = value.split("\\s*[,]+\\s*");
         ManagedList list = null;
         for (int i = 0; i < values.length; i++) {
@@ -222,5 +247,10 @@ public class MoonBeanDefinitionParser implements BeanDefinitionParser {
             }
         }
         bd.getPropertyValues().addPropertyValue(property, list);
+        /**
+         * 在Spring的解析段，其它容器中是没有依赖的Bean的实例的，因此这个被依赖的Bean需要表示成RuntimeBeanReference对象，
+         * 并将它放到BeanDefinition的MutablePropertyValues中。
+         * 在创建Bean时，需要将依赖解析成真正的Spring容器中存在的Bean。
+         */
     }
 }

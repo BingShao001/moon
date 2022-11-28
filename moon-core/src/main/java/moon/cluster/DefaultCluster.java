@@ -44,10 +44,17 @@ public class DefaultCluster<T> implements Cluster<T>, NotifyListener {
 
     private volatile boolean available;
 
+    /**
+     *
+     * @param interfaceClass
+     * @param url reference的信息(ip端口、依赖接口、版本、group，序列化方式，角色，超时时间等)
+     * @param registryUrls 注册中心相关信息
+     */
     public DefaultCluster(Class<T> interfaceClass, URL url, List<URL> registryUrls) {
         this.registryUrls = registryUrls;
         this.interfaceClass = interfaceClass;
         this.url = url;
+        //DefaultRpcProtocol
         protocol = new ProtocolFilterWrapper(ExtensionLoader.getExtensionLoader(Protocol.class).getExtension(url.getProtocol()));
     }
 
@@ -56,9 +63,10 @@ public class DefaultCluster<T> implements Cluster<T>, NotifyListener {
 
         URL subscribeUrl = url.clone0();
         for (URL ru : registryUrls) {
-
+            //获取zk连接资源等
             Registry registry = getRegistry(ru);
             try {
+
                 notify(ru, registry.discover(subscribeUrl));
             } catch (Exception e) {
                 logger.error(String.format("Cluster init discover for the reference:%s, registry:%s", this.url, ru), e);
@@ -69,6 +77,7 @@ public class DefaultCluster<T> implements Cluster<T>, NotifyListener {
 
         logger.info("Cluster init over, url:{}, references size:{}", url, references!=null ? references.size():0);
         boolean check = Boolean.parseBoolean(url.getParameter(URLParam.check.getName(), URLParam.check.getValue()));
+        //如果reference和注册中心的provider没匹配到，就为空，说明没有对应的provider
         if(CollectionUtil.isEmpty(references)) {
             logger.warn(String.format("Cluster No service urls for the reference:%s, registries:%s",
                     this.url, registryUrls));
@@ -124,6 +133,7 @@ public class DefaultCluster<T> implements Cluster<T>, NotifyListener {
     public Response call(Request request) {
         if(available) {
             try {
+                //默认：FailfastHaStrategy  RandomLoadBalance
                 return haStrategy.call(request, loadBalance);
             } catch (Exception e) {
                 if (ExceptionUtil.isBizException(e)) {
@@ -162,6 +172,12 @@ public class DefaultCluster<T> implements Cluster<T>, NotifyListener {
         return loadBalance;
     }
 
+    /**
+     * 1.根据reference信息匹配出对应provider上service的信息；
+     * 2.创建netty通讯对象
+     * @param registryUrl 注册中心的信息
+     * @param urls provider接口信息：地址端口group等等
+     */
     @Override
     public synchronized void notify(URL registryUrl, List<URL> urls) {
         if (CollectionUtil.isEmpty(urls)) {
@@ -175,9 +191,11 @@ public class DefaultCluster<T> implements Cluster<T>, NotifyListener {
 
         List<Reference<T>> newReferences = new ArrayList<>();
         for (URL u : urls) {
+          //过滤reference和provider匹配信息
             if (!u.canServe(url)) {
                 continue;
             }
+            //获取在注册中心上能对应上的reference
             Reference<T> reference = getExistingReference(u, registryReferences.get(registryUrl));
             if (reference == null) {
                 URL referenceURL = u.clone0();
@@ -187,8 +205,9 @@ public class DefaultCluster<T> implements Cluster<T>, NotifyListener {
                 newReferences.add(reference);
             }
         }
+        //按注册中心信息维度记录下References对象
         registryReferences.put(registryUrl, newReferences);
-
+        //更新
         refresh();
     }
 
@@ -214,6 +233,7 @@ public class DefaultCluster<T> implements Cluster<T>, NotifyListener {
     }
 
     private Registry getRegistry(URL registryUrl) {
+        //spi zookeeper
         RegistryFactory registryFactory = ExtensionLoader.getExtensionLoader(RegistryFactory.class).getExtension(registryUrl.getProtocol());
         if (registryFactory == null) {
             throw new RpcFrameworkException("register error! Could not find extension for registry protocol:" + registryUrl.getProtocol()

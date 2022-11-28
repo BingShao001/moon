@@ -59,6 +59,12 @@ public abstract class AbstractRegistry implements Registry {
         doUnsubscribe(url.clone0(), listener);
     }
 
+    /**
+     * 根据依赖interface去注册中心获取注册的对应的provider接口信息：地址端口group等等
+     * @param url
+     * @return
+     * @throws Exception
+     */
     @Override
     public List<URL> discover(URL url) throws Exception {
         Preconditions.checkNotNull(url);

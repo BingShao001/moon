@@ -31,8 +31,8 @@ public abstract class AbstractProvider<T> implements Provider<T> {
 
     @Override
     public Response call(Request request) {
+        //从request请求中获取方法，反射调用
         Response response = invoke(request);
-
         return response;
     }
 

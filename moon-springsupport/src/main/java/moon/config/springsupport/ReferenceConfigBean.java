@@ -1,6 +1,7 @@
 package moon.config.springsupport;
 
 import moon.common.URLParam;
+import moon.config.ApplicationConfig;
 import moon.config.ProtocolConfig;
 import moon.config.ReferenceConfig;
 import moon.config.RegistryConfig;
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.*;
+import org.springframework.util.CollectionUtils;
 
 /**
  * ${DESCRIPTION}
@@ -86,7 +88,18 @@ public class ReferenceConfigBean<T> extends ReferenceConfig<T> implements
         super.destroy0();
     }
 
+    @Override
+    public void checkApplication() {
+        if (!CollectionUtils.isEmpty(MoonNamespaceHandler.applicationConfigDefineNames)) {
+            for (String applicationConfigDefineName : MoonNamespaceHandler.applicationConfigDefineNames) {
+                super.application =  beanFactory.getBean(applicationConfigDefineName, ApplicationConfig.class);
+            }
+        }
+        super.checkApplication();
+    }
+
     private void checkRegistryConfig() {
+        //<moon:reference id="demoService" 节点的registry属性没有赋值，那么取<moon:registry 节点的值
         if (CollectionUtil.isEmpty(getRegistries())) {
             for (String name : MoonNamespaceHandler.registryDefineNames) {
                 RegistryConfig rc = beanFactory.getBean(name, RegistryConfig.class);
@@ -95,18 +108,21 @@ public class ReferenceConfigBean<T> extends ReferenceConfig<T> implements
                 }
                 if (MoonNamespaceHandler.registryDefineNames.size() == 1) {
                     setRegistry(rc);
+                    //配置多个注册中心，注入默认的注册方式
                 } else if (rc.isDefault() != null && rc.isDefault().booleanValue()) {
                     setRegistry(rc);
                 }
             }
         }
+        //如果没配置，将本地注册方式配置
         if (CollectionUtil.isEmpty(getRegistries())) {
             setRegistry(FrameworkUtils.getDefaultRegistryConfig());
         }
     }
 
     private void checkProtocolConfig() {
-        if (CollectionUtil.isEmpty(getProtocols())) {
+        //如果<moon:reference 节点的protocol属性没有赋值，那么取<moon:protocol 节点的值
+        if (!CollectionUtil.isEmpty(getProtocols())) {
             for (String name : MoonNamespaceHandler.protocolDefineNames) {
                 ProtocolConfig pc = beanFactory.getBean(name, ProtocolConfig.class);
                 if (pc == null) {
@@ -114,6 +130,7 @@ public class ReferenceConfigBean<T> extends ReferenceConfig<T> implements
                 }
                 if (MoonNamespaceHandler.protocolDefineNames.size() == 1) {
                     setProtocol(pc);
+                    //配置多个协议，注入默认的协议
                 } else if (pc.isDefault() != null && pc.isDefault().booleanValue()) {
                     setProtocol(pc);
                 }

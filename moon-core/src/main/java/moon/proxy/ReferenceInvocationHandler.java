@@ -42,8 +42,9 @@ public class ReferenceInvocationHandler<T> implements InvocationHandler {
             }
             throw new RpcFrameworkException("can not invoke local method:" + method.getName());
         }
-
+        //组装request通讯对象
         DefaultRequest request = new DefaultRequest();
+        //递增生成一个RequestId，用于映射rpcFuture保存在map中
         request.setRequestId(RequestIdGenerator.getRequestId());
         request.setInterfaceName(method.getDeclaringClass().getName());
         request.setMethodName(method.getName());
@@ -54,7 +55,7 @@ public class ReferenceInvocationHandler<T> implements InvocationHandler {
 
 
         boolean throwException = checkMethodExceptionSignature(method);
-
+        //cluster 封装reference《——》service通讯对象
         for (Cluster<T> cluster : clusters) {
             //调用参数
             request.setAttachment(URLParam.version.getName(), cluster.getUrl().getVersion());
@@ -64,6 +65,7 @@ public class ReferenceInvocationHandler<T> implements InvocationHandler {
                 Response resp = cluster.call(request);
                 return getValue(resp);
             } catch (RuntimeException e) {
+                //分别处理check和runtime异常
                 if (ExceptionUtil.isBizException(e)) {
                     Throwable t = e.getCause();
                     if (t != null && t instanceof Exception) {

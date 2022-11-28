@@ -25,6 +25,7 @@ public abstract class AbstractClient implements NettyClient {
 
     public AbstractClient(URL url) {
         this.url = url;
+        //spi获取编码器DefaultCodec
         this.codec = ExtensionLoader.getExtensionLoader(Codec.class).getExtension(url.getParameter(URLParam.codec.getName(), URLParam.codec.getValue()));
         logger.info("NettyClient init url:" + url.getHost() + "-" + url.getPath() + ", use codec:" + codec.getClass().getSimpleName());
     }

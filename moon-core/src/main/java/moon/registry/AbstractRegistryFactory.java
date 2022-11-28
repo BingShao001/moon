@@ -18,9 +18,11 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
 
     @Override
     public Registry getRegistry(URL url) {
-        //consumer://10.141.5.49/moon.example.UserService?
-        // application=moon-consumer&category=consumers&check=false&moon=2.8.3&interface=moon.example.UserService&pid=29465&side=consumer
-        // &timeout=120000&timestamp=1480648755499&version=1.0.0
+        /**
+         * consumer://10.141.5.49/moon.example.UserService?
+         * application=moon-consumer&category=consumers&check=false&moon=2.8.3&interface=moon.example.UserService&pid=29465&side=consumer
+         * &timeout=120000&timestamp=1480648755499&version=1.0.0
+         */
         String registryUri = getRegistryUri(url);
         try {
             lock.lock();
@@ -33,6 +35,7 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
             if (registry == null) {
                 throw new RpcFrameworkException("Create registry false for url:" + url);
             }
+            //缓存起注册信息对应的注册中心资源
             registries.put(registryUri, registry);
             return registry;
         } catch (Exception e) {

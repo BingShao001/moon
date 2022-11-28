@@ -27,13 +27,14 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * ${DESCRIPTION}
- *
+ * netty4
  * @author Ricky Fung
  */
 public class NettyClientImpl extends AbstractClient {
-
-    private EventLoopGroup group = new NioEventLoopGroup();
-    private Bootstrap b = new Bootstrap();
+    //指定EventLoopGroup 来处理客户端事件。由于我们使用 NIO 传输，所以用到了 NioEventLoopGroup 的实现
+    private EventLoopGroup loopGroup = new NioEventLoopGroup();
+    //引导类
+    private Bootstrap bootstrap = new Bootstrap();
 
     private final ConcurrentHashMap<Long, ResponseFuture> responseFutureMap =
             new ConcurrentHashMap<>(256);
@@ -45,6 +46,9 @@ public class NettyClientImpl extends AbstractClient {
 
     private volatile ChannelWrapper channelWrapper;
 
+    /**
+     * @param url 目标service的url资源
+     */
     public NettyClientImpl(URL url) {
         super(url);
 
@@ -57,6 +61,7 @@ public class NettyClientImpl extends AbstractClient {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
+                //定时清理超时Future
                 scanRpcFutureTable();
             }
         }, 0, 5000, TimeUnit.MILLISECONDS);
@@ -65,13 +70,13 @@ public class NettyClientImpl extends AbstractClient {
     @Override
     public synchronized boolean open() {
 
-        if(initializing){
+        if (initializing) {
             logger.warn("NettyClient is initializing: url=" + url);
             return true;
         }
         initializing = true;
 
-        if(state.isAvailable()){
+        if (state.isAvailable()) {
             logger.warn("NettyClient has initialized: url=" + url);
             return true;
         }
@@ -79,24 +84,29 @@ public class NettyClientImpl extends AbstractClient {
         // 最大响应包限制
         final int maxContentLength = url.getIntParameter(URLParam.maxContentLength.getName(),
                 URLParam.maxContentLength.getIntValue());
-
-        b.group(group).channel(NioSocketChannel.class)
+        //指定EventLoopGroup 来处理客户端事件。由于我们使用 NIO 传输，所以用到了 NioEventLoopGroup 的实现
+        bootstrap.group(loopGroup)
+                //客户端只需要绑定一个通讯的nio channel
+                .channel(NioSocketChannel.class)
+                //通讯的TCP优化参数
                 .option(ChannelOption.TCP_NODELAY, true)
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .option(ChannelOption.SO_RCVBUF, url.getIntParameter(URLParam.bufferSize.getName(), URLParam.bufferSize.getIntValue()))
                 .option(ChannelOption.SO_SNDBUF, url.getIntParameter(URLParam.bufferSize.getName(), URLParam.bufferSize.getIntValue()))
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
-                    public void initChannel(SocketChannel ch)
-                            throws Exception {
-                        ch.pipeline().addLast(new NettyDecoder(codec, url, maxContentLength, Constants.HEADER_SIZE, 4), //
-                                new NettyEncoder(codec, url), //
+                    public void initChannel(SocketChannel ch) throws Exception {
+                        ch.pipeline().addLast(
+                                //编解码器
+                                new NettyDecoder(codec, url, maxContentLength, Constants.HEADER_SIZE, 4),
+                                new NettyEncoder(codec, url),
+                                //响应处理的handler
                                 new NettyClientHandler());
                     }
                 });
 
         try {
-            ChannelFuture channelFuture = b.connect(this.remoteAddress).sync();
+            ChannelFuture channelFuture = bootstrap.connect(this.remoteAddress).sync();
             this.channelWrapper = new ChannelWrapper(channelFuture);
         } catch (InterruptedException e) {
             logger.error(String.format("NettyClient connect to address:%s failure", this.remoteAddress), e);
@@ -145,7 +155,7 @@ public class NettyClientImpl extends AbstractClient {
             });
             return rpcFuture.get();
         } else {
-            throw new TransportException("channel not active. request id:"+request.getRequestId());
+            throw new TransportException("channel not active. request id:" + request.getRequestId());
         }
     }
 
@@ -168,7 +178,7 @@ public class NettyClientImpl extends AbstractClient {
             });
             return rpcFuture;
         } else {
-            throw new TransportException("channel not active. request id:"+request.getRequestId());
+            throw new TransportException("channel not active. request id:" + request.getRequestId());
         }
     }
 
@@ -189,7 +199,7 @@ public class NettyClientImpl extends AbstractClient {
                 }
             });
         } else {
-            throw new TransportException("channel not active. request id:"+request.getRequestId());
+            throw new TransportException("channel not active. request id:" + request.getRequestId());
         }
     }
 
@@ -201,14 +211,14 @@ public class NettyClientImpl extends AbstractClient {
     @Override
     public synchronized void close(int timeout) {
 
-        if(state.isClosed()){
+        if (state.isClosed()) {
             logger.info("NettyClient close fail: already close, url={}", url.getUri());
             return;
         }
 
         try {
             this.scheduledExecutorService.shutdown();
-            this.group.shutdownGracefully();
+            this.loopGroup.shutdownGracefully();
 
             state = ChannelState.CLOSED;
         } catch (Exception e) {
@@ -225,11 +235,11 @@ public class NettyClientImpl extends AbstractClient {
                 throws Exception {
 
             logger.info("client read msg:{}, ", msg);
-            if(msg instanceof Response) {
+            if (msg instanceof Response) {
                 DefaultResponse response = (DefaultResponse) msg;
-
-                ResponseFuture<Response> rpcFuture =responseFutureMap.get(response.getRequestId());
-                if(rpcFuture!=null) {
+                //响应时，根据请求id去FutureMap中获取之前请求储存的Future
+                ResponseFuture<Response> rpcFuture = responseFutureMap.get(response.getRequestId());
+                if (rpcFuture != null) {
                     responseFutureMap.remove(response.getRequestId());
                     rpcFuture.setResult(response);
                 }
@@ -251,16 +261,18 @@ public class NettyClientImpl extends AbstractClient {
             return this.channelWrapper.getChannel();
         }
 
-        synchronized (this){
+        synchronized (this) {
             // 发起异步连接操作
-            ChannelFuture channelFuture = b.connect(this.remoteAddress).sync();
+            ChannelFuture channelFuture = bootstrap.connect(this.remoteAddress).sync();
             this.channelWrapper = new ChannelWrapper(channelFuture);
         }
 
         return this.channelWrapper.getChannel();
     }
 
-    /**定时清理超时Future**/
+    /**
+     * 定时清理超时Future
+     **/
     private void scanRpcFutureTable() {
 
         long currentTime = System.currentTimeMillis();

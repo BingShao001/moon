@@ -1,5 +1,6 @@
 package moon.config.springsupport;
 
+import moon.config.ApplicationConfig;
 import moon.config.ProtocolConfig;
 import moon.config.RegistryConfig;
 import moon.config.ServiceConfig;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.util.CollectionUtils;
 
 /**
  * ${DESCRIPTION}
@@ -35,7 +37,7 @@ public class ServiceConfigBean<T> extends ServiceConfig<T> implements BeanFactor
     }
 
     /**
-     * 监听上下文事件
+     * 容器启动监听上下文事件
      * @param contextRefreshedEvent
      */
     @Override
@@ -46,18 +48,18 @@ public class ServiceConfigBean<T> extends ServiceConfig<T> implements BeanFactor
     }
 
     /**
-     * 解析完环境配置文件后，给service对象复制
+     * 解析完环境配置文件后，检查application,registry,protocol对象
      * @throws Exception
      */
     @Override
     public void afterPropertiesSet() throws Exception {
 
         logger.debug("check service interface:%s config", getInterfaceName());
-        //检查application并赋值name
+        //检查<moon:application并赋值name
         checkApplication();
-        //给<moon:service 节点的registry属性赋值
+        //给<moon:registry 节点的registry属性赋值
         checkRegistryConfig();
-        //给<moon:service 节点的protocol属性赋值
+        //给<moon:protocol 节点的protocol属性赋值
         checkProtocolConfig();
     }
 
@@ -66,6 +68,16 @@ public class ServiceConfigBean<T> extends ServiceConfig<T> implements BeanFactor
         super.destroy0();
     }
 
+    @Override
+    public void checkApplication() {
+        if (!CollectionUtils.isEmpty(MoonNamespaceHandler.applicationConfigDefineNames)) {
+            //遍历application的bean id
+            for (String applicationConfigDefineName : MoonNamespaceHandler.applicationConfigDefineNames) {
+                super.application =  beanFactory.getBean(applicationConfigDefineName, ApplicationConfig.class);
+            }
+        }
+        super.checkApplication();
+    }
     /**
      * 如果<moon:service 节点的registry属性没有赋值，那么取<moon:registry 节点的值
      */

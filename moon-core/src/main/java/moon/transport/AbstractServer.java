@@ -27,8 +27,9 @@ public abstract class AbstractServer implements NettyServer {
 
     public AbstractServer(URL url) {
         this.url = url;
-        this.codec =
-                ExtensionLoader.getExtensionLoader(Codec.class).getExtension(url.getParameter(URLParam.codec.getName(), URLParam.codec.getValue()));
+        //spi编解码方式
+        this.codec = ExtensionLoader.getExtensionLoader(Codec.class)
+                .getExtension(url.getParameter(URLParam.codec.getName(), URLParam.codec.getValue()));
     }
 
     @Override

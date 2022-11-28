@@ -120,6 +120,11 @@ public class URL {
         }
     }
 
+    /**
+     * 用reference信息和provider的协议、依赖接口、版本、序列化方式等分别作对比，只要不同就返回false
+     * @param refUrl reference的配置信息
+     * @return
+     */
     public boolean canServe(URL refUrl) {
         if (refUrl == null || !this.getPath().equals(refUrl.getPath())) {
             return false;

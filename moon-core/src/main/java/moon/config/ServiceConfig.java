@@ -61,7 +61,9 @@ public class ServiceConfig<T> extends AbstractInterfaceConfig {
         if (registryUrls == null || registryUrls.size() == 0) {
             throw new IllegalStateException("Should set registry config for service:" + interfaceClass.getName());
         }
-
+        /**
+         * 有多少种协议注册多少个service，默认一个
+         */
         for(ProtocolConfig protocol : protocols) {
 
             doExport(protocol, registryUrls);
@@ -75,7 +77,7 @@ public class ServiceConfig<T> extends AbstractInterfaceConfig {
         if (protocolName == null || protocolName.length() == 0) {
             protocolName = URLParam.protocol.getValue();//默认
         }
-
+        //获取service所在服务的ip端口
         Integer port = getProtocolPort(protocol);
         String hostAddress = getLocalHostAddress(protocol);
 
@@ -91,6 +93,7 @@ public class ServiceConfig<T> extends AbstractInterfaceConfig {
         URL serviceUrl = new URL(protocolName, hostAddress, port, interfaceClass.getName(), map);
 
         for(URL ru : registryUrls) {
+            //<service节点信息，注册中心信息>
             registeredUrls.put(serviceUrl, ru);
         }
         //通过扩展器类加载器实例化DefaultConfigHandler

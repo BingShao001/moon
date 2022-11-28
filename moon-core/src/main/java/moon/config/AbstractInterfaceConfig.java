@@ -2,11 +2,13 @@ package moon.config;
 
 import moon.common.URL;
 import moon.common.URLParam;
+import moon.config.springsupport.MoonNamespaceHandler;
 import moon.exception.RpcFrameworkException;
 import moon.registry.Registry;
 import moon.util.Constants;
 import moon.util.NetUtils;
 import moon.util.StringUtils;
+import org.springframework.util.CollectionUtils;
 
 import java.net.InetAddress;
 import java.util.*;
@@ -48,8 +50,9 @@ public class AbstractInterfaceConfig extends AbstractConfig {
                 //注册协议zookeeper
                 String protocol = config.getProtocol();
                 if (StringUtils.isBlank(address)) {
-                    //127.0.0.1:0local
+                    //127.0.0.1:0
                     address = NetUtils.LOCALHOST + Constants.HOST_PORT_SEPARATOR + Constants.DEFAULT_INT_VALUE;
+                    //local
                     protocol = Constants.REGISTRY_PROTOCOL_LOCAL;
                 }
                 Map<String, String> map = new HashMap<>();
@@ -107,6 +110,7 @@ public class AbstractInterfaceConfig extends AbstractConfig {
     }
 
     protected void checkApplication() {
+
         if (application == null) {
             application = new ApplicationConfig();
         }

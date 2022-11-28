@@ -3,29 +3,30 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:context="http://www.springframework.org/schema/context"
        xmlns:moon="http://code.mindflow.com/schema/moon"
-       xmlns:util="http://www.springframework.org/schema/util"
        xsi:schemaLocation="
-       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-       http://code.mindflow.com/schema/moon http://code.mindflow.com/schema/moon/moon.xsd
-       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
-       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+       http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://code.mindflow.com/schema/moon
+       http://code.mindflow.com/schema/moon/moon.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd">
 
     <context:annotation-config/>
     <context:component-scan base-package="moon.demo"/>
 
-    <context:property-placeholder location="classpath:config.properties" />
+    <context:property-placeholder location="classpath:config.properties"/>
 
-    <moon:application name="${application.name}" />
+    <moon:application name="${application.name}"/>
 
     <moon:protocol name="moon" port="${protocol.port}" />
 
-    <moon:registry protocol="zookeeper" address="${registry.address}" />
+    <moon:registry protocol="zookeeper" address="${registry.address}"/>
 
     <!--export services -->
-    <moon:service interface="moon.demo.service.DemoService" ref="demoService" group="group1" version="1.0.0" />
-    <moon:service interface="moon.demo.service.UserService" ref="userService" version="1.0.0" />
+    <moon:service interface="moon.demo.service.DemoService" ref="demoService" protocol="moon" group="group1" version="1.0.0"/>
+    <moon:service interface="moon.demo.service.UserService" ref="userService" version="1.0.0"/>
     <moon:service interface="moon.demo.service.FooService" ref="fooService"/>
 
-    <bean id="fooService" class="moon.demo.server.service.impl.FooServiceImpl" />
+    <bean id="fooService" class="moon.demo.server.service.impl.FooServiceImpl"/>
 
 </beans>
